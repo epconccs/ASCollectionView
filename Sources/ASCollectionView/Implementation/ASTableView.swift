@@ -228,8 +228,8 @@ public struct ASTableView<SectionID: Hashable>: UIViewControllerRepresentable, C
 				}
 			)
             dataSource?.applySnapshot(snapshot, animated: animated) {
-                if let initialIndexPath = parent.initialIndexPath {
-                    scrollToIndexPath(initialIndexPath, animated: false)
+                if let initialIndexPath = self.parent.initialIndexPath {
+                    self.scrollToIndexPath(initialIndexPath, animated: false)
                 }
             }
 			withAnimation(parent.animateOnDataRefresh ? transaction?.animation : nil) {
