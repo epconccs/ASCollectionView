@@ -227,7 +227,11 @@ public struct ASTableView<SectionID: Hashable>: UIViewControllerRepresentable, C
 					ASDiffableDataSourceSnapshot.Section(id: $0.id, elements: $0.itemIDs)
 				}
 			)
-			dataSource?.applySnapshot(snapshot, animated: animated)
+            dataSource?.applySnapshot(snapshot, animated: animated) {
+                if let initialIndexPath = parent.initialIndexPath {
+                    scrollToIndexPath(initialIndexPath, animated: false)
+                }
+            }
 			withAnimation(parent.animateOnDataRefresh ? transaction?.animation : nil) {
 				refreshVisibleCells()
 			}
@@ -301,7 +305,7 @@ public struct ASTableView<SectionID: Hashable>: UIViewControllerRepresentable, C
 			hasDoneInitialSetup = true
 			populateDataSource(animated: false)
             // Set initial scroll position
-            parent.initialIndexPath.map { scrollToIndexPath($0, animated: false) }
+            //parent.initialIndexPath.map { scrollToIndexPath($0, animated: false) }
 			tableViewController.map { checkIfReachedBottom($0.tableView) }
 		}
 
