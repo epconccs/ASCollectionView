@@ -24,6 +24,14 @@ public extension ASTableView
 		this.onReachedBottomCallback = onReachedBottom
 		return this
 	}
+    
+    /// Set a closure that is called whenever the tableView beggin scrolling.
+    func onBeginScroll(_ onBeginScroll: @escaping OnBeginScrollCallback) -> Self
+    {
+        var this = self
+        this.onBeginScrollCallback = onBeginScroll
+        return this
+    }
 
 	/// Set whether to show separators between cells
 	func separatorsEnabled(_ isEnabled: Bool = true) -> Self
@@ -72,6 +80,14 @@ public extension ASTableView
 		this.animateOnDataRefresh = animate
 		return this
 	}
+    
+    /// Set an initial scroll position for the TableView
+    func initialIndexPath(_ indexPath: IndexPath?) -> Self
+    {
+        var this = self
+        this.initialIndexPath = indexPath
+        return this
+    }
 }
 
 // MARK: ASTableView specific header modifiers

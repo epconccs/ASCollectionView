@@ -15,6 +15,7 @@ public struct ASTableView<SectionID: Hashable>: UIViewControllerRepresentable, C
 
 	public typealias OnScrollCallback = ((_ contentOffset: CGPoint, _ contentSize: CGSize) -> Void)
 	public typealias OnReachedBottomCallback = (() -> Void)
+    public typealias OnBeginScrollCallback = OnReachedBottomCallback
 
 	// MARK: Key variables
 
@@ -24,6 +25,7 @@ public struct ASTableView<SectionID: Hashable>: UIViewControllerRepresentable, C
 	// MARK: Private vars set by public modifiers
 
 	internal var onScrollCallback: OnScrollCallback?
+    internal var onBeginScrollCallback: OnBeginScrollCallback?
 	internal var onReachedBottomCallback: OnReachedBottomCallback?
 
 	internal var scrollIndicatorEnabled: Bool = true
@@ -35,6 +37,11 @@ public struct ASTableView<SectionID: Hashable>: UIViewControllerRepresentable, C
 
 	internal var alwaysBounce: Bool = false
 	internal var animateOnDataRefresh: Bool = true
+    internal var initialIndexPath: IndexPath?
+    
+    // Other
+    var tableViewHeader: AnyView?
+    var tableViewHeaderHeight: CGFloat = 0
 
 	// MARK: Environment variables
 
@@ -49,7 +56,7 @@ public struct ASTableView<SectionID: Hashable>: UIViewControllerRepresentable, C
 	{
 		context.coordinator.parent = self
 
-		let tableViewController = AS_TableViewController(style: style)
+		let tableViewController = AS_TableViewController(style: style, tableViewHeaderHeight: tableViewHeaderHeight, tableHeaderView: tableViewHeader)
 		tableViewController.coordinator = context.coordinator
 
 		context.coordinator.tableViewController = tableViewController
@@ -119,6 +126,8 @@ public struct ASTableView<SectionID: Hashable>: UIViewControllerRepresentable, C
 		init(_ parent: ASTableView)
 		{
 			self.parent = parent
+            super.init()
+            self.setUpNotifications()
 		}
 
 		func itemID(for indexPath: IndexPath) -> ASCollectionViewItemUniqueID?
@@ -291,6 +300,8 @@ public struct ASTableView<SectionID: Hashable>: UIViewControllerRepresentable, C
 
 			hasDoneInitialSetup = true
 			populateDataSource(animated: false)
+            // Set initial scroll position
+            parent.initialIndexPath.map { scrollToIndexPath($0, animated: false) }
 			tableViewController.map { checkIfReachedBottom($0.tableView) }
 		}
 
@@ -327,6 +338,11 @@ public struct ASTableView<SectionID: Hashable>: UIViewControllerRepresentable, C
 				tv.refreshControl = refreshControl
 			}
 		}
+        
+        func scrollToIndexPath(_ indexPath: IndexPath, animated: Bool = false)
+        {
+            tableViewController?.tableView.scrollToRow(at: indexPath, at: .middle, animated: animated)
+        }
 
 		@objc
 		public func tableViewDidPullToRefresh()
@@ -412,6 +428,32 @@ public struct ASTableView<SectionID: Hashable>: UIViewControllerRepresentable, C
 		{
 			parent.sections[safe: indexPath.section]?.dataSource.onDelete(indexPath: indexPath, completionHandler: completionHandler)
 		}
+        
+        //MARK: Notification Center
+        
+        func setUpNotifications() {
+            NotificationCenter.default.addObserver(self, selector: #selector(asTableViewShouldScrollToSectionNotification(notif:)), name: .ASTableViewShouldScrollToSectionNotification, object: nil)
+        }
+        
+        func removeNotifications() {
+            NotificationCenter.default.removeObserver(self)
+        }
+        
+        @objc func asTableViewShouldScrollToSectionNotification(notif: Notification) {
+            
+            guard let section = notif.object as? Int,
+                parent.sections.count > section else {return}
+            
+            var animated = true
+            
+            if let animatedInfo = notif.userInfo?[Notification.ASKey.ScrollAnimated] as? Bool {
+                animated = animatedInfo
+            }
+            
+            //scroll to the specified section
+            let sectionIndexPath = IndexPath(row: NSNotFound, section: section)
+            tableViewController?.tableView.scrollToRow(at: sectionIndexPath, at: .top, animated: animated)
+        }
 
 		// MARK: Cell Selection
 
@@ -637,6 +679,10 @@ public struct ASTableView<SectionID: Hashable>: UIViewControllerRepresentable, C
 			parent.onScrollCallback?(scrollView.contentOffset, scrollView.contentSizePlusInsets)
 			checkIfReachedBottom(scrollView)
 		}
+        
+        public func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+            parent.onBeginScrollCallback?()
+        }
 
 		var hasAlreadyReachedBottom: Bool = false
 		func checkIfReachedBottom(_ scrollView: UIScrollView)
@@ -654,6 +700,12 @@ public struct ASTableView<SectionID: Hashable>: UIViewControllerRepresentable, C
 				hasAlreadyReachedBottom = false
 			}
 		}
+        
+        //MARK: - deinit
+        
+        deinit {
+            removeNotifications()
+        }
 	}
 }
 

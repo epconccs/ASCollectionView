@@ -80,4 +80,18 @@ public extension ASTableView where SectionID == Int
 			style: .plain,
 			sections: [ASTableViewSection(id: 0, content: staticContent)])
 	}
+    
+    func tableViewHeader<Content: View>(height: CGFloat, content: () -> Content?) -> Self
+    {
+        var tableView = self
+        tableView.setHeaderView(content())
+        tableView.tableViewHeaderHeight = height
+        return tableView
+    }
+    
+    fileprivate mutating func setHeaderView<Content: View>(_ view: Content?)
+    {
+        guard let view = view else { return }
+        tableViewHeader = AnyView(view)
+    }
 }
